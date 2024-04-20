@@ -1,0 +1,26 @@
+from pygame import Vector2
+
+NUM_GUESSES = 6
+COUNT = 4
+COLORS = 'RGBOYW'
+CHAR_TO_COLOR = {
+	'': (128, 0, 0),
+	'R': (255, 0, 0),
+	'G': (0, 255, 0),
+	'B': (0, 0, 255),
+	'O': (255, 165, 0),
+	'Y': (255, 255, 0),
+	'W': (255, 255, 255), 
+}
+
+IMG_SIZE = 1080
+BACKGROUND_COLOR = (210, 153, 138)
+BOUNDARY_COLOR = (0, 0, 0)
+
+GUESSES_OFFSET = Vector2(500, 100)
+SHADOW_OFFSET = Vector2(15, 25)
+CIRCLE_RAD = 40
+CIRCLE_BOUNDARY = 3
+
+CIRCLES_X_OFFSET = 2 * CIRCLE_RAD + 40
+GUESSES_Y_OFFSET = CIRCLES_X_OFFSET + 40

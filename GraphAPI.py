@@ -18,9 +18,11 @@ class Comment: # TODO test
 		self.userId: str = comment['from']['id']
 		self.text: str = comment['text']
 		self.likes: int = comment['like_count']
-		self.time = datetime.datetime.strptime(comment['timestamp'], r'%Y-%m-%dT%X%z')
+		self.timestamp = datetime.datetime.strptime(comment['timestamp'], r'%Y-%m-%dT%X%z')
 	def __str__(self) -> str:
 		return self.username  + ': "' + self.text + '"'
+	def __repr__(self) -> str:
+		return 'Comment<' + str(self) + '>'
 
 CREDENTIALS = getCredentials()
 API_BASE_URL = 'https://graph.facebook.com/v19.0'
@@ -45,6 +47,5 @@ def callApi(endpoint: str, method='GET', **params):
 
 def getComments(postId) -> list[Comment]:
 	res = callApi(postId + '/comments', postId, fields='id,text,like_count,from,timestamp')
-	comments = res['data']
-	comments = [Comment(c) for c in comments]
+	comments = [Comment(c) for c in res['data']]
 	return comments
