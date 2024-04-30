@@ -1,6 +1,7 @@
 import requests
 import json
 import datetime
+import time
 
 # helpers ------------------------
 def getCredentials() -> dict:
@@ -26,7 +27,7 @@ class Comment: # TODO test
 
 CREDENTIALS = getCredentials()
 API_BASE_URL = 'https://graph.facebook.com/v19.0'
-ACCOUNT_SPECIFIC_URL = API_BASE_URL + '/' + CREDENTIALS['instagram_account_id']
+ACCOUNT_ID = CREDENTIALS['instagram_account_id']
 
 # requests --------------------------------
 def prepareParams(params):
@@ -49,3 +50,22 @@ def getComments(postId) -> list[Comment]:
 	res = callApi(postId + '/comments', postId, fields='id,text,like_count,from,timestamp')
 	comments = [Comment(c) for c in res['data']]
 	return comments
+
+# posting -----------
+def createMediaObject(caption: str, imageUrl: str) -> str:
+	res = callApi(ACCOUNT_ID + '/media', 'POST', caption=caption, image_url=imageUrl)
+	return res['id']
+def isMediaFinished(mediaId) -> bool:
+	res = callApi(mediaId, fields='status_code')
+	finished = res['status_code'] == 'FINISHED'
+	if not finished: print('media status: ' + res['status_code'] + ', waiting...')
+	return finished
+def publishMedia(mediaId) -> str:
+	res = callApi(ACCOUNT_ID + '/media_publish', 'POST', creation_id=mediaId)
+	return res['id']
+def postImage(caption, imageUrl) -> str:
+	mediaId = createMediaObject(caption, imageUrl)
+	while not isMediaFinished(mediaId):
+		time.sleep(5)
+	postId = publishMedia(mediaId)
+	return postId
