@@ -32,8 +32,8 @@ ACCOUNT_ID = CREDENTIALS['instagram_account_id']
 # requests --------------------------------
 def prepareParams(params):
 	params['access_token'] = CREDENTIALS['access_token']
-def handleRes(res: requests.Response) -> dict:
-	print(res.url.replace(CREDENTIALS['access_token'], '###'))
+def handleRes(res: requests.Response, method) -> dict:
+	print(method, res.url.replace(CREDENTIALS['access_token'], '###'))
 	try:
 		data = json.loads(res.content)
 		displayJson(data)
@@ -44,10 +44,10 @@ def callApi(endpoint: str, method='GET', **params):
 	prepareParams(params)
 	url = API_BASE_URL + '/' * (endpoint[0] != '/') + endpoint
 	res = requests.request(method, url, params=params)
-	return handleRes(res)
+	return handleRes(res, method)
 
 def getComments(postId) -> list[Comment]:
-	res = callApi(postId + '/comments', postId, fields='id,text,like_count,from,timestamp')
+	res = callApi(postId + '/comments', fields='id,text,like_count,from,timestamp')
 	comments = [Comment(c) for c in res['data']]
 	return comments
 
