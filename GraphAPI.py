@@ -1,7 +1,11 @@
 import requests
 import json
 import datetime
-import time
+import time, os
+
+import http.server
+from socketserver import TCPServer
+import threading, subprocess
 
 # helpers ------------------------
 def getCredentials() -> dict:
@@ -52,6 +56,30 @@ def getComments(postId) -> list[Comment]:
 	return comments
 
 # posting -----------
+class Server:
+	PORT = 8000
+	def __init__(self):
+		self.spawnHttpServer()
+		self.spawnNgrok()
+	def spawnHttpServer(self):
+		Handler = http.server.SimpleHTTPRequestHandler
+		self.server = TCPServer(('', self.PORT), Handler)
+		self.serverThread = threading.Thread(target=self.server.serve_forever)
+		self.serverThread.start()
+
+	def spawnNgrok(self):
+		self.ngrok = subprocess.Popen(['ngrok', 'http', str(self.PORT)], stdout=subprocess.PIPE)
+		time.sleep(2)
+		res = requests.get('http://localhost:4040/api/tunnels')
+		self.serverUrl = res.json()['tunnels'][0]['public_url']
+	def imageUrl(self, path):
+		assert os.path.exists(path)
+		return self.serverUrl + '/' + path
+	def shutdown(self):
+		self.ngrok.terminate()
+		self.server.shutdown()
+		self.serverThread.join()
+
 def createMediaObject(caption: str, imageUrl: str) -> str:
 	res = callApi(ACCOUNT_ID + '/media', 'POST', caption=caption, image_url=imageUrl)
 	return res['id']
@@ -63,9 +91,11 @@ def isMediaFinished(mediaId) -> bool:
 def publishMedia(mediaId) -> str:
 	res = callApi(ACCOUNT_ID + '/media_publish', 'POST', creation_id=mediaId)
 	return res['id']
-def postImage(caption, imageUrl) -> str:
-	mediaId = createMediaObject(caption, imageUrl)
+def postImage(caption, filepath) -> str:
+	server = Server()
+	mediaId = createMediaObject(caption, server.imageUrl(filepath))
 	while not isMediaFinished(mediaId):
 		time.sleep(5)
 	postId = publishMedia(mediaId)
+	server.shutdown()
 	return postId

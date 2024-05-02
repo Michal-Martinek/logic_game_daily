@@ -3,7 +3,7 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 from pygame import Surface, draw, Vector2, image
 
 from Const import *
-from GraphAPI import getComments, Comment
+from GraphAPI import getComments, postImage, Comment
 from Logik import Logik
 
 def chooseGuess(logik: Logik, comments: list[Comment]):
@@ -39,8 +39,13 @@ def renderGame(logik: Logik):
 	img = drawBackground()
 	drawGuesses(img, logik)
 	return img
-def post(img, logik: Logik):
-	pass
+def saveImage(img: Surface, logik: Logik):
+	path = f'./posts/img_{len(logik.guesses)}.jpg'
+	image.save(img, path)
+	return path
+def post(img: Surface, logik: Logik):
+	filepath = saveImage(img, logik)
+	postId = postImage(f'S1G{len(logik.guesses)} - new guess {logik.guesses[-1]}\nBy Michal Martínek\n\n#logik', filepath)
 def main():
 	logik = Logik()
 	logik.addGuess('YBRO')
@@ -49,7 +54,6 @@ def main():
 	chooseGuess(logik, comments)
 
 	img = renderGame(logik)
-	image.save(img, 'img.jpg')
 	post(img, logik)
 
 if __name__ == '__main__':
