@@ -2,6 +2,7 @@ import requests
 import json
 import datetime
 import time, os
+import logging
 
 import http.server
 from socketserver import TCPServer
@@ -12,9 +13,6 @@ def getCredentials() -> dict:
 	with open('credentials.json') as f:
 		creds = json.load(f)
 	return creds
-def displayJson(data, indent=4):
-	s = json.dumps(data, indent=indent)
-	print(s)
 
 class Comment: # TODO test
 	def __init__(self, comment: dict):
@@ -36,13 +34,19 @@ ACCOUNT_ID = CREDENTIALS['instagram_account_id']
 # requests --------------------------------
 def prepareParams(params):
 	params['access_token'] = CREDENTIALS['access_token']
-def handleRes(res: requests.Response, method) -> dict:
-	print(method, res.url.replace(CREDENTIALS['access_token'], '###'))
+def logRes(logLvl, method, res: requests.Response, data):
+	url = res.url.replace(CREDENTIALS['access_token'], '###')
+	data = json.dumps(data, indent=4) if isinstance(data, dict) else data
+	logging.log(logLvl, f'{method} {res.status_code} {url}\n{data}\n')
+	if logLvl != logging.DEBUG:
+		logging.error('ERROR in request')
+		exit(1)
+def handleRes(res: requests.Response, method, logLvl=logging.ERROR) -> dict:
 	try:
 		data = json.loads(res.content)
-		displayJson(data)
-	except: print(res.content, end='\n\n')
-	assert res.ok, f'Request returned status code {res.status_code}'
+		if res.ok: logLvl = logging.DEBUG
+	except json.JSONDecodeError: data = res.content
+	logRes(logLvl, method, res, data)
 	return data
 def callApi(endpoint: str, method='GET', **params):
 	prepareParams(params)
@@ -72,6 +76,7 @@ class Server:
 		time.sleep(2)
 		res = requests.get('http://localhost:4040/api/tunnels')
 		self.serverUrl = res.json()['tunnels'][0]['public_url']
+		logging.info(self.serverUrl)
 	def imageUrl(self, path):
 		assert os.path.exists(path)
 		return self.serverUrl + '/' + path
@@ -86,7 +91,7 @@ def createMediaObject(caption: str, imageUrl: str) -> str:
 def isMediaFinished(mediaId) -> bool:
 	res = callApi(mediaId, fields='status_code')
 	finished = res['status_code'] == 'FINISHED'
-	if not finished: print('media status: ' + res['status_code'] + ', waiting...')
+	if not finished: logging.info('media status: ' + res['status_code'] + ', waiting...')
 	return finished
 def publishMedia(mediaId) -> str:
 	res = callApi(ACCOUNT_ID + '/media_publish', 'POST', creation_id=mediaId)

@@ -1,6 +1,7 @@
 __pycache__
 *.jpg
 *.txt
+*.log
 backup
 Jstolpe_python
 

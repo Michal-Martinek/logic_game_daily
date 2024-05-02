@@ -1,10 +1,29 @@
 import re, os
+import logging, traceback
+import datetime
+
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 from pygame import Surface, draw, Vector2, image
 
 from Const import *
 from GraphAPI import getComments, postImage, Comment
 from Logik import Logik
+
+# helpers --------------------------------
+LOGGING_LVL = 'INFO'
+def initLogging():
+	if not os.path.exists('logs'): os.mkdir('logs')
+	filename = 'logs/%s.log' % datetime.datetime.now().strftime('%Y-%m-%d')
+	handlers = [logging.FileHandler(filename), logging.StreamHandler()]
+	logging.basicConfig(handlers=handlers, level=LOGGING_LVL, format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)i:%(funcName)s:	%(message)s')
+def runFuncLogged(func):
+	try:
+		func()
+	except Exception as e:
+		strs = traceback.format_exception(type(e), e, e.__traceback__)
+		msg = 'UNCATCHED EXCEPTION\n' + ''.join(strs[1:])
+		logging.critical(msg)
+		raise SystemExit()
 
 def chooseGuess(logik: Logik, comments: list[Comment]):
 	comments.sort(key=lambda c: c.timestamp)
@@ -40,21 +59,25 @@ def renderGame(logik: Logik):
 	drawGuesses(img, logik)
 	return img
 def saveImage(img: Surface, logik: Logik):
-	path = f'./posts/img_{len(logik.guesses)}.jpg'
+	path = f'posts/img_{len(logik.guesses)}.jpg'
 	image.save(img, path)
 	return path
 def post(img: Surface, logik: Logik):
 	filepath = saveImage(img, logik)
 	postId = postImage(f'S1G{len(logik.guesses)} - new guess {logik.guesses[-1]}\nBy Michal Martínek\n\n#logik', filepath)
+	logging.info(f'postId: {postId}')
+
 def main():
+	initLogging()
 	logik = Logik()
 	logik.addGuess('YBRO')
 
 	comments = getComments('18286471126165707')
 	chooseGuess(logik, comments)
+	logging.info('Guesses: ' + ', '.join(map(str, logik.guesses)))
 
 	img = renderGame(logik)
 	post(img, logik)
 
 if __name__ == '__main__':
-	main()
+	runFuncLogged(main)
