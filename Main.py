@@ -31,7 +31,9 @@ def chooseGuess(logik: Logik, comments: list[Comment]):
 	regex = '\\b[%s]{%s}\\b' % (COLORS, COUNT)
 	matches = [re.findall(regex, c.text) for c in comments]
 	matches = [m[0] for m in matches if m]
-	assert matches, 'No guesses found'
+	if not matches:
+		logging.warning('No guesses found, generating randomly')
+		return logik.genRandomGuess()
 	return matches[-1]
 def getGuess(logik: Logik):
 	if not logik.postIds: return
@@ -64,23 +66,25 @@ def renderGame(logik: Logik):
 	drawGuesses(img, logik)
 	return img
 def saveImage(img: Surface, logik: Logik):
-	path = f'posts/img_{len(logik.guesses)}.jpg'
+	path = f'posts/img_{logik.getDescriptor()}.jpg'
 	image.save(img, path)
 	return path
 def post(img: Surface, logik: Logik):
 	filepath = saveImage(img, logik)
-	postId = postImage(f'S1G{len(logik.guesses)} - new guess {logik.guesses[-1]}\nBy Michal Martínek\n\n#logik', filepath)
+	postId = postImage(f'{logik.getDescriptor()} - new guess {logik.guesses[-1]}\nBy Michal Martínek\n\n#logik', filepath)
 	logik.postIds.append(postId)
 	logging.info(f'postId: {postId}')
 
 def main():
 	initLogging()
 	logik = Logik()
+	logging.info('Started after ' + logik.getDescriptor())
 
 	getGuess(logik)
 	img = renderGame(logik)
 	post(img, logik)
 	logik.save()
+	logging.info(f'Posted {logik.getDescriptor()}, closing\n\n')
 
 if __name__ == '__main__':
 	runFuncLogged(main)
