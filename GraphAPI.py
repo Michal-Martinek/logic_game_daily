@@ -38,13 +38,13 @@ def logRes(logLvl, method, res: requests.Response, data):
 	url = res.url.replace(CREDENTIALS['access_token'], '###')
 	data = json.dumps(data, indent=4) if isinstance(data, dict) else data
 	logging.log(logLvl, f'{method} {res.status_code} {url}\n{data}\n')
-	if logLvl != logging.DEBUG:
+	if logLvl != logging.INFO:
 		logging.error('ERROR in request')
 		exit(1)
 def handleRes(res: requests.Response, method, logLvl=logging.ERROR) -> dict:
 	try:
 		data = json.loads(res.content)
-		if res.ok: logLvl = logging.DEBUG
+		if res.ok: logLvl = logging.INFO
 	except json.JSONDecodeError: data = res.content
 	logRes(logLvl, method, res, data)
 	return data

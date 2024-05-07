@@ -32,8 +32,13 @@ def chooseGuess(logik: Logik, comments: list[Comment]):
 	matches = [re.findall(regex, c.text) for c in comments]
 	matches = [m[0] for m in matches if m]
 	assert matches, 'No guesses found'
-	match = matches[-1]
-	logik.addGuess(match)
+	return matches[-1]
+def getGuess(logik: Logik):
+	if not logik.postIds: return
+	comments = getComments(logik.postIds[-1])
+	guess = chooseGuess(logik, comments)
+	logik.addGuess(guess)
+	logging.info('Guesses: ' + ', '.join(map(str, logik.guesses)))
 
 # drawing -----------------------------------
 def drawCircle(img, pos, colorChar):
@@ -65,19 +70,17 @@ def saveImage(img: Surface, logik: Logik):
 def post(img: Surface, logik: Logik):
 	filepath = saveImage(img, logik)
 	postId = postImage(f'S1G{len(logik.guesses)} - new guess {logik.guesses[-1]}\nBy Michal Martínek\n\n#logik', filepath)
+	logik.postIds.append(postId)
 	logging.info(f'postId: {postId}')
 
 def main():
 	initLogging()
 	logik = Logik()
-	logik.addGuess('YBRO')
 
-	comments = getComments('18286471126165707')
-	chooseGuess(logik, comments)
-	logging.info('Guesses: ' + ', '.join(map(str, logik.guesses)))
-
+	getGuess(logik)
 	img = renderGame(logik)
 	post(img, logik)
+	logik.save()
 
 if __name__ == '__main__':
 	runFuncLogged(main)

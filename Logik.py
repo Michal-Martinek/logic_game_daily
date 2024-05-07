@@ -1,4 +1,6 @@
 import random
+import logging
+import pickle
 
 from Const import *
 
@@ -16,11 +18,27 @@ class Guess:
 		return self.s == other.s
 
 class Logik:
-	def __init__(self):
-		self.solution = self.generateSolution()
-		self.guesses: list[Guess] = []
-		self.lastPostId = ''
-	def generateSolution(self):
+	FILENAME = 'logik.pkl'
+	def __init__(self, load=True):
+		fields = { 'solution': self.genRandomGuess() }
+		if load and (o := self.tryLoad()):
+			fields = o.__dict__
+		self.init(**fields)
+	def init(self, solution: Guess, guesses:list[Guess]=[], postIds:list[str]=[]):
+		self.solution = solution
+		self.guesses = guesses
+		self.postIds = postIds
+	def tryLoad(self):
+		try:
+			with open(self.FILENAME, 'rb') as f:
+				return pickle.load(f)
+		except (FileNotFoundError, pickle.PickleError):
+			logging.warning(f"File '{self.FILENAME}' not found or corrupted, logik reinitialized")
+			return False
+	def save(self):
+		with open(self.FILENAME, 'wb') as f:
+			pickle.dump(self, f)
+	def genRandomGuess(self):
 		colors = list(COLORS)
 		random.shuffle(colors)
 		return Guess(colors[:COUNT])
