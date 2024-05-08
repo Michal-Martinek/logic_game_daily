@@ -89,6 +89,12 @@ def main():
 	getGuess(logik)
 	filepath = renderGame(logik)
 	post(logik, filepath)
+
+	if logik.won():
+		logging.info(f'Game {logik.getDescriptor()} won, starting new\n\n')
+		logik.newGame()
+	else:
+		logging.info(f'Posted {logik.getDescriptor()}, closing\n\n')
 	logik.save()
 	logging.info(f'Posted {logik.getDescriptor()}, closing\n\n')
 

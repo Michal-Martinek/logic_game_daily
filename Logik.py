@@ -36,8 +36,9 @@ class Logik:
 		except (FileNotFoundError, pickle.PickleError):
 			logging.warning(f"File '{self.FILENAME}' not found or corrupted, logik reinitialized")
 			return False
-	def save(self):
-		with open(self.FILENAME, 'wb') as f:
+	def save(self, backup=False):
+		filename = f'logikBackups/logik_{self.gameNum}.pkl' if backup else self.FILENAME
+		with open(filename, 'wb') as f:
 			pickle.dump(self, f)
 	def getDescriptor(self):
 		return f'L{self.gameNum}G{len(self.guesses)}'
@@ -54,3 +55,8 @@ class Logik:
 		correctColors = sum(c in self.solution for c in guess)
 		correctPositions = sum(c == g for c, g in zip(guess, self.solution))
 		return correctPositions, correctColors
+	def won(self):
+		return self.evalGuess(self.guesses[-1])[0] == COUNT
+	def newGame(self):
+		self.save(True)
+		self.init(self.genRandomGuess(), postIds=self.postIds[-1:], gameNum=self.gameNum+1)
