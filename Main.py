@@ -43,34 +43,40 @@ def getGuess(logik: Logik):
 	logging.info('Guesses: ' + ', '.join(map(str, logik.guesses)))
 
 # drawing -----------------------------------
-def drawCircle(img, pos, colorChar):
+def drawCircle(img, pos, color):
+	color = CHAR_TO_COLOR[color] if isinstance(color, str) else color
 	draw.circle(img, (128, 128, 128), pos + SHADOW_OFFSET, CIRCLE_RAD)
-	draw.circle(img, CHAR_TO_COLOR[colorChar], pos, CIRCLE_RAD)
+	draw.circle(img, color, pos, CIRCLE_RAD)
 	draw.circle(img, BOUNDARY_COLOR, pos, CIRCLE_RAD, width=CIRCLE_BOUNDARY)
-def drawGuess(row, img: Surface, guess):
-	topleft = GUESSES_OFFSET + Vector2(0, row * GUESSES_Y_OFFSET)
+def drawCircles(img: Surface, row, logik: Logik, guess: str, isEval: bool):
+	pos = (EVAL_OFFSET if isEval else GUESSES_OFFSET) + Vector2(0, row * Y_SPACING)
 	for col in range(COUNT):
-		pos = topleft + Vector2(CIRCLE_RAD + CIRCLES_X_OFFSET * col, CIRCLE_RAD)
-		colorChar = guess.s[col] if guess else ''
-		drawCircle(img, pos, colorChar)
+		if not guess: color = BLANK_COLOR
+		elif isEval:
+			correctPositions, correctColors = logik.evalGuess(guess)
+			color = (0, 0, 0) if col < correctPositions else 'W' if col < correctColors else BLANK_COLOR
+		else: color = guess[col]
+		drawCircle(img, pos, color)
+		pos.x += X_SPACING
 def drawGuesses(img, logik: Logik):
-	for i, guess in enumerate(logik.getGuesses()):
-		drawGuess(i, img, guess)
-		res = logik.evalGuess(guess)
+	for row, guess in enumerate(logik.getGuesses()):
+		drawCircles(img, row, logik, guess, False)
+		drawCircles(img, row, logik, guess, True)
 def drawBackground():
 	img = Surface((IMG_SIZE, IMG_SIZE))
 	img.fill(BACKGROUND_COLOR)
 	return img
-def renderGame(logik: Logik):
-	img = drawBackground()
-	drawGuesses(img, logik)
-	return img
+
 def saveImage(img: Surface, logik: Logik):
 	path = f'posts/img_{logik.getDescriptor()}.jpg'
+	if not os.path.exists('posts'): os.mkdir('posts')
 	image.save(img, path)
 	return path
-def post(img: Surface, logik: Logik):
-	filepath = saveImage(img, logik)
+def renderGame(logik: Logik) -> str:
+	img = drawBackground()
+	drawGuesses(img, logik)
+	return saveImage(img, logik)
+def post(logik: Logik, filepath: str):
 	postId = postImage(f'{logik.getDescriptor()} - new guess {logik.guesses[-1]}\nBy Michal Martínek\n\n#logik', filepath)
 	logik.postIds.append(postId)
 	logging.info(f'postId: {postId}')
@@ -81,8 +87,8 @@ def main():
 	logging.info('Started after ' + logik.getDescriptor())
 
 	getGuess(logik)
-	img = renderGame(logik)
-	post(img, logik)
+	filepath = renderGame(logik)
+	post(logik, filepath)
 	logik.save()
 	logging.info(f'Posted {logik.getDescriptor()}, closing\n\n')
 

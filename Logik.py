@@ -48,9 +48,9 @@ class Logik:
 	def addGuess(self, guess):
 		if isinstance(guess, str): guess = Guess(guess)
 		self.guesses.append(guess)
-	def getGuesses(self) -> list:
-		return self.guesses + [''] * (NUM_GUESSES - len(self.guesses))
+	def getGuesses(self) -> list[str]:
+		return [g.s for g in self.guesses] + [''] * (NUM_GUESSES - len(self.guesses))
 	def evalGuess(self, guess: Guess) -> tuple[int, int]:
-		correctColor = sum(c in self.solution for c in guess)
-		correctPosition = sum(c == g for c, g in zip(guess, self.solution))
-		return correctColor - correctPosition, correctPosition
+		correctColors = sum(c in self.solution for c in guess)
+		correctPositions = sum(c == g for c, g in zip(guess, self.solution))
+		return correctPositions, correctColors
