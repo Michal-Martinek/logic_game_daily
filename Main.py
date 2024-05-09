@@ -5,6 +5,7 @@ import datetime
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 from pygame import Surface, draw, Vector2, image
 
+os.chdir(os.path.dirname(__file__))
 from Const import *
 from GraphAPI import getComments, postImage, Comment
 from Logik import Logik
@@ -32,11 +33,13 @@ def chooseGuess(logik: Logik, comments: list[Comment]):
 	matches = [re.findall(regex, c.text) for c in comments]
 	matches = [m[0] for m in matches if m]
 	if not matches:
-		logging.warning('No guesses found, generating randomly')
-		return logik.genRandomGuess()
+		logging.warning('No guesses found, aborting')
+		exit()
 	return matches[-1]
 def getGuess(logik: Logik):
-	if not logik.postIds: return
+	if not logik.postIds:
+		logging.error('no post Id supplied, aborting')
+		exit()
 	comments = getComments(logik.postIds[-1])
 	guess = chooseGuess(logik, comments)
 	logik.addGuess(guess)
