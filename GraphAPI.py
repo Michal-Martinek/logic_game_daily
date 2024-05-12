@@ -14,7 +14,7 @@ def getCredentials() -> dict:
 		creds = json.load(f)
 	return creds
 
-class Comment: # TODO test
+class Comment:
 	def __init__(self, comment: dict):
 		self.id: str = comment['id']
 		self.username: str = comment['from']['username']
@@ -67,22 +67,32 @@ class Server:
 		self.spawnNgrok()
 	def spawnHttpServer(self):
 		Handler = http.server.SimpleHTTPRequestHandler
-		self.server = TCPServer(('', self.PORT), Handler)
+		while self.PORT < 8010:
+			try:
+				self.server = TCPServer(('', self.PORT), Handler)
+				break
+			except OSError:
+				self.PORT += 1
+				logging.warning(f'Error in setting up TCPServer, trying PORT={self.PORT}')
 		self.serverThread = threading.Thread(target=self.server.serve_forever)
 		self.serverThread.start()
 
 	def spawnNgrok(self):
 		self.ngrok = subprocess.Popen(['ngrok', 'http', str(self.PORT)], stdout=subprocess.PIPE)
 		time.sleep(2)
-		res = requests.get('http://localhost:4040/api/tunnels')
-		self.serverUrl = res.json()['tunnels'][0]['public_url']
-		logging.info(self.serverUrl)
+		try:
+			res = requests.get('http://localhost:4040/api/tunnels')
+			self.serverUrl = res.json()['tunnels'][0]['public_url']
+		except Exception:
+			logRes(logging.INFO, 'GET', res, json.loads(res.content))
+			raise
+		logging.info('Server URL: ' + self.serverUrl)
 	def imageUrl(self, path):
 		assert os.path.exists(path)
 		return self.serverUrl + '/' + path
 	def shutdown(self):
-		self.ngrok.terminate()
 		self.server.shutdown()
+		self.ngrok.terminate()
 		self.serverThread.join()
 
 def createMediaObject(caption: str, imageUrl: str) -> str:
@@ -97,10 +107,14 @@ def publishMedia(mediaId) -> str:
 	res = callApi(ACCOUNT_ID + '/media_publish', 'POST', creation_id=mediaId)
 	return res['id']
 def postImage(caption, filepath) -> str:
-	server = Server()
-	mediaId = createMediaObject(caption, server.imageUrl(filepath))
-	while not isMediaFinished(mediaId):
-		time.sleep(5)
-	postId = publishMedia(mediaId)
-	server.shutdown()
+	try:
+		server = Server()
+		mediaId = createMediaObject(caption, server.imageUrl(filepath))
+		while not isMediaFinished(mediaId):
+			time.sleep(5)
+		postId = publishMedia(mediaId)
+	finally:
+		try:
+			server.shutdown()
+		except Exception: pass
 	return postId

@@ -26,12 +26,12 @@ def runFuncLogged(func):
 		logging.critical(msg)
 		raise SystemExit()
 
-def chooseGuess(logik: Logik, comments: list[Comment]):
+def chooseGuess(comments: list[Comment]):
 	comments.sort(key=lambda c: c.timestamp)
 	comments.sort(key=lambda c: c.likes)
 	regex = '\\b[%s]{%s}\\b' % (COLORS, COUNT)
 	matches = [re.findall(regex, c.text) for c in comments]
-	matches = [m[0] for m in matches if m]
+	matches = [m[-1] for m in matches if m]
 	if not matches:
 		logging.warning('No guesses found, aborting')
 		exit()
@@ -41,7 +41,7 @@ def getGuess(logik: Logik):
 		logging.error('no post Id supplied, aborting')
 		exit()
 	comments = getComments(logik.postIds[-1])
-	guess = chooseGuess(logik, comments)
+	guess = chooseGuess(comments)
 	logik.addGuess(guess)
 	logging.info('Guesses: ' + ', '.join(map(str, logik.guesses)))
 
@@ -99,7 +99,6 @@ def main():
 	else:
 		logging.info(f'Posted {logik.getDescriptor()}, closing\n\n')
 	logik.save()
-	logging.info(f'Posted {logik.getDescriptor()}, closing\n\n')
 
 if __name__ == '__main__':
 	runFuncLogged(main)
