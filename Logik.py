@@ -5,13 +5,18 @@ import pickle
 from Const import *
 
 class Guess:
-	def __init__(self, s=''):
+	def __init__(self, s='', username='', likes=0):
 		if isinstance(s, (list, tuple)): s = ''.join(s)
 		self.s = s.upper().strip()
+		self.username = username
+		self.likes = likes
 	def __str__(self) -> str:
 		return self.s
 	def __repr__(self) -> str:
-		return 'Guess<' + str(self) + '>'
+		s = self.s
+		if self.username: s += f' from {self.username}'
+		if self.likes: s += f', {self.likes} likes'
+		return f'Guess<{s}>'
 	def __iter__(self):
 		return iter(self.s)
 	def __eq__(self, other):
@@ -46,8 +51,8 @@ class Logik:
 		colors = list(COLORS)
 		random.shuffle(colors)
 		return Guess(colors[:COUNT])
-	def addGuess(self, guess):
-		if isinstance(guess, str): guess = Guess(guess)
+	def addGuess(self, guess, username: str, likes: int):
+		if isinstance(guess, str): guess = Guess(guess, username, likes)
 		self.guesses.append(guess)
 	def getGuesses(self) -> list[str]:
 		return [g.s for g in self.guesses] + [''] * (NUM_GUESSES - len(self.guesses))

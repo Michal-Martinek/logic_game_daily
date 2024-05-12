@@ -8,7 +8,7 @@ from pygame import Surface, draw, Vector2, image
 os.chdir(os.path.dirname(__file__))
 from Const import *
 from GraphAPI import getComments, postImage, Comment
-from Logik import Logik
+from Logik import Logik, Guess
 
 # helpers --------------------------------
 LOGGING_LVL = 'INFO'
@@ -26,12 +26,12 @@ def runFuncLogged(func):
 		logging.critical(msg)
 		raise SystemExit()
 
-def chooseGuess(comments: list[Comment]):
+def chooseGuess(comments: list[Comment]) -> tuple[str, Comment]:
 	comments.sort(key=lambda c: c.timestamp)
 	comments.sort(key=lambda c: c.likes)
 	regex = '\\b[%s]{%s}\\b' % (COLORS, COUNT)
 	matches = [re.findall(regex, c.text) for c in comments]
-	matches = [m[-1] for m in matches if m]
+	matches = [(m[-1], c) for m, c in zip(matches, comments) if m]
 	if not matches:
 		logging.warning('No guesses found, aborting')
 		exit()
@@ -41,9 +41,9 @@ def getGuess(logik: Logik):
 		logging.error('no post Id supplied, aborting')
 		exit()
 	comments = getComments(logik.postIds[-1])
-	guess = chooseGuess(comments)
-	logik.addGuess(guess)
-	logging.info('Guesses: ' + ', '.join(map(str, logik.guesses)))
+	guess, comment = chooseGuess(comments)
+	logik.addGuess(guess, comment.username, comment.likes)
+	logging.info('Guesses: ' + ', '.join(map(repr, logik.guesses)))
 
 # drawing -----------------------------------
 def drawCircle(img, pos, color):
@@ -79,8 +79,31 @@ def renderGame(logik: Logik) -> str:
 	img = drawBackground()
 	drawGuesses(img, logik)
 	return saveImage(img, logik)
+def genDesc(logik: Logik) -> str:
+	guess = logik.guesses[-1]
+	correctPositions, correctColors = logik.evalGuess(guess)
+	evalStr = f'This guess contains {correctColors} correct colors'
+	if correctPositions: evalStr += f' and {correctPositions} of them are in the right position!'
+	else: evalStr += '.'
+	if logik.won(): evalStr = f"Correct! '{guess}' is indeed the right solution!\nYou won this game in {len(logik.guesses)} guesses, congrats! 🎉\n🔄 Comment new guess here to start a new logik game."
+	likeStr = f' with {guess.likes} ❤️' if guess.likes else ''
+	desc = f"""
+{logik.getDescriptor()} New guess {guess} by @{guess.username}{likeStr}
+{evalStr}
+
+❓ For more info see the gray info post below ⬇️
+
+Made with ❤️ by Michal Martínek ©2024
+This post was posted automatically through my server.
+GitHub: https://github.com/Michal-Martinek/logic_game_daily
+
+#logik #interactive #game #puzzle #voting #colors #audience #GraphAPI
+"""
+	return desc
+
 def post(logik: Logik, filepath: str):
-	postId = postImage(f'{logik.getDescriptor()} - new guess {logik.guesses[-1]}\nBy Michal Martínek\n\n#logik', filepath)
+	desc = genDesc(logik)
+	postId = postImage(desc, filepath)
 	logik.postIds.append(postId)
 	logging.info(f'postId: {postId}')
 
